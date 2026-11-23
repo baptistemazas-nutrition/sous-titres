@@ -55,7 +55,7 @@ dialog input,dialog select{font:inherit;font-size:17px;padding:10px 12px;border-
 </style></head><body>
 <div class="bar">
 <div class="brand">Live<span>Subtitles</span></div>
-<div id="spk" class="seg"></div><button id="add">+ Personne</button><button id="ma" class="autob">Auto langue</button><button id="pro" class="autob">✨ Mode Pro</button>
+<div id="spk" class="seg"></div><button id="add">+ Personne</button><button id="vx" class="autob">🎙 Voix auto (gratuit)</button><button id="ma" class="autob">Auto langue</button><button id="pro" class="autob">✨ Mode Pro</button>
 <button class="go" id="go">▶ Démarrer</button>
 <button id="minus">A−</button><button id="plus">A+</button>
 <button id="clear">Effacer</button>
@@ -64,6 +64,7 @@ dialog input,dialog select{font:inherit;font-size:17px;padding:10px 12px;border-
 </div>
 <div id="corner"></div>
 <dialog id="modal"><form><h3>Intervenant</h3><label>Prénom<input id="mn" autocomplete="off"></label><label>Langue parlée<select id="ml"></select></label><div class="mb"><button id="mdel" class="ghost">Supprimer</button><span></span><button id="mcancel" class="ghost">Annuler</button><button id="mok" class="go">Enregistrer</button></div></form></dialog>
+<dialog id="vdlg"><form><h3>🎙 Apprendre les voix</h3><p id="vtxt" style="color:#cfd3e0;font-size:18px;line-height:1.5;max-width:460px"></p><div style="height:10px;background:#222;border-radius:6px;overflow:hidden;margin:10px 0 18px"><div id="vbar" style="height:100%;width:0;background:linear-gradient(90deg,#5b8cff,#2fd39a)"></div></div><div class="mb"><button id="vstop" class="ghost">Désactiver</button><span></span><button id="vcancel" class="ghost">Fermer</button><button id="vnext" class="go">Commencer</button></div></form></dialog>
 <dialog id="pdlg"><form><h3>✨ Mode Pro — reconnaissance des voix</h3><p style="color:#9aa0b4;font-size:14px;line-height:1.5;max-width:460px">Reconnaît automatiquement <b>qui parle</b> (Intervenant 1, 2, 3…), <b>la langue de chacun</b> et traduit dans les deux sens, sans appuyer sur aucune touche. Service Soniox (≈ 0,12 $ par heure). Colle ta clé API Soniox : elle reste uniquement dans ce navigateur.</p><label>Clé API Soniox<input id="pkey" autocomplete="off" placeholder="colle ta clé ici"></label><label>Langue A<select id="pla"></select></label><label>Langue B<select id="plb"></select></label><div class="mb"><button id="poff" class="ghost">Désactiver</button><span></span><button id="pcancel" class="ghost">Annuler</button><button id="pok" class="go">Activer</button></div></form></dialog>
 <div id="log"><div class="empty" id="empty">Clique sur <b>▶ Démarrer</b> et parle.<br>Espace pour passer la parole · Échap pour les réglages</div></div>
 <script>
@@ -86,9 +87,9 @@ async function local(text,sl,tl){if(!window.Translator)throw 0;const k=sl+tl;if(
 async function web(text,sl,tl){const r=await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl="+sl+"&tl="+tl+"&q="+encodeURIComponent(text)).then(r=>r.json());return r[0].map(x=>x[0]).join("")}
 async function tr(text,sl,tl,final){if(sl===tl)return text;for(const f of final?[web,local]:[local,web]){try{return fix(await f(text,sl,tl))}catch(e){}}return "⚠️ Traduction indisponible : vérifie Internet ou mets Chrome à jour"}
 async function detect(text){try{if(window.LanguageDetector){if(!det)det=await LanguageDetector.create();return (await det.detect(text))[0]?.detectedLanguage}}catch(e){}return null}
-function draw(){const box=$("spk");box.innerHTML="";P.forEach((p,i)=>{const b=document.createElement("button");b.style.setProperty("--c",COL[i%COL.length]);b.className=i===cur&&!auto?"act":"";b.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+COL[i%COL.length]+'"></span>'+esc(p.n)+' <small style="opacity:.7">'+code(p.l).toUpperCase()+'</small>';b.title="Double-clic : renommer / changer de langue";b.onclick=()=>pick(i);b.ondblclick=()=>edit(i);box.appendChild(b)});$("ma").classList.toggle("act",auto);corner()}
+function draw(){const box=$("spk");box.innerHTML="";P.forEach((p,i)=>{const b=document.createElement("button");b.style.setProperty("--c",COL[i%COL.length]);b.className=i===cur&&!auto?"act":"";b.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+COL[i%COL.length]+'"></span>'+esc(p.n)+' <small style="opacity:.7">'+code(p.l).toUpperCase()+'</small>';b.title="Double-clic : renommer / changer de langue";b.onclick=()=>pick(i);b.ondblclick=()=>edit(i);box.appendChild(b)});$("ma").classList.toggle("act",auto);$("vx").classList.toggle("act",vauto);corner()}
 function edit(i){const m=$("modal");$("mn").value=P[i].n;$("ml").innerHTML=Object.entries(LANGS).map(([k,v])=>'<option value="'+k+'"'+(k===P[i].l?" selected":"")+'>'+v+'</option>').join("");m.dataset.i=i;$("mdel").style.display=P.length>2?"":"none";m.showModal();setTimeout(()=>$("mn").select(),50)}
-function pick(i){cur=i;auto=false;if(live){live.classList.remove("live");live=null}draw();if(on)rec.abort()}
+function pick(i){cur=i;auto=false;vauto=false;if(live){live.classList.remove("live");live=null}draw();if(on)rec.abort()}
 function newLine(i,sl,tl){$("empty")?.remove();const d=document.createElement("div");d.className="line live"+(i%2?" r":"");d.style.setProperty("--c",COL[i%COL.length]);d.innerHTML='<div class="who">● '+esc(P[i].n)+' · '+code(sl).toUpperCase()+' → '+tl.toUpperCase()+' <span class="num">#'+(++turn)+' · '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'</span></div><div class="t" dir="auto"></div><div class="o" dir="auto"></div>';$("log").appendChild(d);while($("log").children.length>40)$("log").firstChild.remove();return d}
 function scroll(){$("log").scrollTop=$("log").scrollHeight}
 async function update(text,final){
@@ -112,7 +113,7 @@ function start(){
  on=true;rec.start();document.body.classList.add("on");$("go").textContent="■ Arrêter";$("st").textContent="Micro actif";corner();
 }
 function stop(){on=false;rec&&rec.stop();document.body.classList.remove("on");$("go").textContent="▶ Démarrer";$("st").textContent="Arrêté";corner()}
-function corner(){$("corner").textContent=(auto?"Auto langue":P[cur].n)+" · "+(on?"● en écoute":"arrêté")}
+function corner(){$("corner").textContent=(vauto?"🎙 "+P[cur].n:auto?"Auto langue":P[cur].n)+" · "+(on?"● en écoute":"arrêté")}
 $("add").onclick=()=>{P.push({n:"Personne "+(P.length+1),l:"en-US"});save();draw();edit(P.length-1)};
 $("ma").onclick=()=>{auto=!auto;draw()};
 $("go").onclick=()=>on?stop():start();
@@ -121,6 +122,21 @@ $("minus").onclick=()=>{size=Math.max(20,size-6);document.documentElement.style.
 $("clear").onclick=()=>{$("log").innerHTML="";live=null;turn=0};
 $("hide").onclick=()=>{document.body.classList.add("hide");document.documentElement.requestFullscreen?.().catch(()=>{})};
 addEventListener("keydown",e=>{if(e.key==="Escape")document.body.classList.remove("hide");if(e.target.closest&&e.target.closest("dialog"))return;if(e.target.tagName==="INPUT")return;if(e.code==="Space"){e.preventDefault();pick((cur+1)%P.length)}const n=+e.key;if(n>=1&&n<=Math.min(9,P.length))pick(n-1)});
+let VA=null,vauto=false,VP={};try{VP=JSON.parse(localStorage.getItem("vprof")||"{}")}catch(e){}
+async function vInit(){if(VA)return VA;const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});const ctx=new AudioContext();const an=ctx.createAnalyser();an.fftSize=2048;ctx.createMediaStreamSource(st).connect(an);VA={ctx,an,buf:new Float32Array(2048),fb:new Float32Array(1024)};return VA}
+function vFeat(){const {an,buf,fb,ctx}=VA;an.getFloatTimeDomainData(buf);let rms=0;for(const v of buf)rms+=v*v;rms=Math.sqrt(rms/buf.length);if(rms<0.012)return null;const sr=ctx.sampleRate;let best=0,bl=0;for(let l=Math.floor(sr/400);l<Math.floor(sr/70);l++){let c=0;for(let i=0;i<buf.length-l;i++)c+=buf[i]*buf[i+l];if(c>best){best=c;bl=l}}const f0=bl?sr/bl:0;an.getFloatFrequencyData(fb);let n=0,d=0;for(let i=2;i<fb.length;i++){const m=Math.pow(10,fb[i]/20);n+=m*i;d+=m}const cen=d?n/d*sr/an.fftSize:0;if(f0<70||f0>400)return null;return [Math.log(f0),Math.log(cen+1)]}
+const med=a=>{const b=[...a].sort((x,y)=>x-y);return b[Math.floor(b.length/2)]};
+function vProfile(fs){return [med(fs.map(f=>f[0])),med(fs.map(f=>f[1]))]}
+function vNear(f){let bj=-1,bd=1e9;P.forEach((p,j)=>{const q=VP[p.n];if(!q)return;const d=Math.pow((f[0]-q[0])/0.12,2)+Math.pow((f[1]-q[1])/0.35,2);if(d<bd){bd=d;bj=j}});return bj}
+let vWin=[],vCand=-1,vSince=0;
+function vLoop(){if(!vauto)return;const f=vFeat();const now=performance.now();if(f){vWin.push(f);if(vWin.length>12)vWin.shift();if(vWin.length>=6){const j=vNear(vProfile(vWin));if(j>=0&&j!==cur){if(j!==vCand){vCand=j;vSince=now}else if(now-vSince>450){pick(j);vauto=true;draw();vCand=-1;vWin=[]}}else vCand=-1}}else if(vWin.length)vWin.shift();setTimeout(vLoop,50)}
+let vStep=0,vColl=[];
+function vText(){const p=P[vStep];$("vtxt").innerHTML=vStep<P.length?'Étape '+(vStep+1)+'/'+P.length+' : <b style="color:'+COL[vStep%COL.length]+'">'+esc(p.n)+'</b> parle normalement pendant 6 secondes (dans n\'importe quelle langue), puis clique sur « Enregistrer ».':'✅ Voix apprises. La page passera automatiquement d\'une personne à l\'autre selon la voix.'}
+$("vx").onclick=async()=>{try{await vInit()}catch(e){alert("Autorise le micro pour cette page.");return}vStep=0;vText();$("vnext").textContent="Commencer";$("vbar").style.width="0";$("vdlg").showModal()};
+$("vnext").onclick=async e=>{e.preventDefault();if(vStep>=P.length){$("vdlg").close();vauto=true;auto=false;draw();vLoop();return}$("vnext").disabled=true;vColl=[];const t0=performance.now();await new Promise(res=>{const tk=()=>{const f=vFeat();if(f)vColl.push(f);const k=(performance.now()-t0)/6000;$("vbar").style.width=Math.min(100,k*100)+"%";k<1?setTimeout(tk,50):res()};tk()});$("vnext").disabled=false;if(vColl.length<15){$("vtxt").innerHTML+="<br><span style='color:#ff7a45'>Pas assez de voix captée, recommence en parlant plus près du micro.</span>";return}VP[P[vStep].n]=vProfile(vColl);try{localStorage.setItem("vprof",JSON.stringify(VP))}catch(e){}vStep++;$("vbar").style.width="0";vText();$("vnext").textContent=vStep>=P.length?"Activer":"Enregistrer la suivante"};
+$("vstop").onclick=e=>{e.preventDefault();vauto=false;$("vdlg").close();draw()};
+$("vcancel").onclick=e=>{e.preventDefault();$("vdlg").close()};
+
 draw();
 $("mok").onclick=e=>{e.preventDefault();const i=+$("modal").dataset.i;P[i]={n:$("mn").value.trim()||P[i].n,l:$("ml").value};save();$("modal").close();draw();if(on)rec.abort()};
 $("mdel").onclick=e=>{e.preventDefault();const i=+$("modal").dataset.i;P.splice(i,1);if(cur>=P.length)cur=0;save();$("modal").close();draw()};
@@ -134,7 +150,7 @@ const g=k=>{try{return localStorage.getItem(k)}catch(e){return null}},sv=(k,v)=>
 let names={};try{names=JSON.parse(g("pnames")||"{}")}catch(e){}
 const opts=sel=>Object.entries(L2).map(([k,v])=>'<option value="'+k+'"'+(k===sel?" selected":"")+'>'+v+'</option>').join("");
 function proOn(){return !!g("pkey")}
-function mark(){$("pro").classList.toggle("act",proOn());$("pro").textContent=proOn()?"✨ Mode Pro actif":"✨ Mode Pro";["spk","add","ma"].forEach(id=>$(id).style.display=proOn()?"none":"")}
+function mark(){$("pro").classList.toggle("act",proOn());$("pro").textContent=proOn()?"✨ Mode Pro actif":"✨ Mode Pro";["spk","add","ma","vx"].forEach(id=>$(id).style.display=proOn()?"none":"")}
 $("pro").onclick=()=>{$("pkey").value=g("pkey")||"";$("pla").innerHTML=opts(g("pla")||"fr");$("plb").innerHTML=opts(g("plb")||"en");$("pdlg").showModal()};
 $("pok").onclick=e=>{e.preventDefault();const k=$("pkey").value.trim();if(k){sv("pkey",k);sv("pla",$("pla").value);sv("plb",$("plb").value)}$("pdlg").close();mark()};
 $("poff").onclick=e=>{e.preventDefault();sv("pkey",null);$("pdlg").close();mark()};
