@@ -34,18 +34,20 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid #444;bac
 const $=i=>document.getElementById(i);
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 let rec,on=false,size=44,fr=true,live=null,seq=0,timer=null,lastQ="";
-const fix=t=>t.replace(/lipoprot\w*\s*(petit|little|small)\s*a\b|\bLP ?\(a\)|\bLPA\b/gi,"Lp(a)").replace(/\bobese (patients|people|subjects)\b/gi,"patients with obesity").replace(/\bnon-obese\b/gi,"without obesity");
+const fix=t=>t.replace(/(small |little )?lipoprotein\s*(petit|little|small)?\s*\(?a\)?(?=[\s.,;:!?]|$)/gi,"Lp(a)").replace(/lipoprot\w*\s*petit\s*a\b/gi,"Lp(a)").replace(/\bLP ?\(a\)|\bLPA\b/gi,"Lp(a)").replace(/\bobese (patients|people|subjects)\b/gi,"patients with obesity").replace(/\bnon-obese\b/gi,"without obesity");
 const cfg=()=>fr?{lang:"fr-FR",sl:"fr",tl:"en",cls:"fr"}:{lang:"en-US",sl:"en",tl:"fr",cls:"en"};
-async function tr(text,c){try{const r=await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl="+c.sl+"&tl="+c.tl+"&q="+encodeURIComponent(text)).then(r=>r.json());return fix(r[0].map(x=>x[0]).join(""))}catch(e){return "⚠️ Pas de connexion internet"}}
+const T={};async function local(text,c){const k=c.sl+c.tl;if(!window.Translator)throw 0;if(!T[k])T[k]=Translator.create({sourceLanguage:c.sl,targetLanguage:c.tl});return await (await T[k]).translate(text)}
+async function web(text,c){const r=await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl="+c.sl+"&tl="+c.tl+"&q="+encodeURIComponent(text)).then(r=>r.json());return r[0].map(x=>x[0]).join("")}
+async function tr(text,c,final){const order=final?[web,local]:[local,web];for(const f of order){try{return fix(await f(text,c))}catch(e){}}return "⚠️ Traduction indisponible : vérifie Internet ou mets Chrome à jour"}
 function newLine(c){const d=document.createElement("div");d.className="line live "+c.cls;d.innerHTML='<div class="t"></div><div class="o"></div>';$("log").appendChild(d);while($("log").children.length>30)$("log").firstChild.remove();return d}
 function scroll(){$("log").scrollTop=$("log").scrollHeight}
 function update(text,final){
  const c=cfg();if(!live)live=newLine(c);
  const el=live;el.querySelector(".o").textContent=text;scroll();
  const id=++seq;
- const go=async()=>{const out=await tr(text,c);if(final||id===seq){el.querySelector(".t").textContent=out;scroll()}};
+ const go=async()=>{const out=await tr(text,c,final);if(final||id===seq){el.querySelector(".t").textContent=out;scroll()}};
  if(final){clearTimeout(timer);go();el.classList.remove("live");live=null;lastQ=""}
- else if(text!==lastQ){lastQ=text;clearTimeout(timer);timer=setTimeout(go,150)}
+ else if(text!==lastQ){lastQ=text;clearTimeout(timer);timer=setTimeout(go,60)}
 }
 function start(){
  if(!SR){$("st").textContent="Ouvre cette page avec Google Chrome.";return}
@@ -57,7 +59,7 @@ function start(){
 }
 function stop(){on=false;rec&&rec.stop();document.body.classList.remove("on");$("go").textContent="▶ Démarrer";$("st").innerHTML='<span class="dot"></span>Arrêté'}
 function flip(){fr=!fr;const t=fr?"🇫🇷 Je parle → 🇬🇧":"🇬🇧 Il parle → 🇫🇷";$("dir").textContent=t;$("who2").textContent=t;if(live){live.classList.remove("live");live=null}if(on)rec.abort()}
-$("go").onclick=()=>on?stop():start();
+$("go").onclick=()=>{if(window.Translator){Translator.create({sourceLanguage:"fr",targetLanguage:"en"}).then(x=>T.fren=Promise.resolve(x)).catch(()=>{});Translator.create({sourceLanguage:"en",targetLanguage:"fr"}).then(x=>T.enfr=Promise.resolve(x)).catch(()=>{})}on?stop():start()};
 $("dir").onclick=flip;
 $("plus").onclick=()=>{size+=6;document.body.style.setProperty("--s",size+"px")};
 $("minus").onclick=()=>{size=Math.max(20,size-6);document.body.style.setProperty("--s",size+"px")};
