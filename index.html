@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-:root{--s:52px;--fr:#5b8cff;--en:#ff7a45;--key:#ffd166;--num:#4ee0b5}
+:root{--s:56px;--fr:#5b8cff;--en:#ff7a45;--key:#ffd166;--num:#4ee0b5}
 *{box-sizing:border-box}
 body{margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;color:#f5f6fa;font-family:Inter,-apple-system,system-ui,sans-serif;background:radial-gradient(1200px 600px at 15% -10%,#1c2340 0%,transparent 60%),radial-gradient(900px 500px at 110% 110%,#2a1a14 0%,transparent 60%),#07080c}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 18px;background:rgba(255,255,255,.04);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.07);font-size:14px}
@@ -27,7 +27,7 @@ select option{color:#000}
 #log>:first-child{margin-top:auto}
 .line{display:flex;flex-direction:column;max-width:92%;opacity:.38;transform:scale(.97);transform-origin:left bottom;transition:opacity .4s,transform .4s}
 .line.r{align-self:flex-end;align-items:flex-end;transform-origin:right bottom}
-.line:nth-last-child(-n+2){opacity:1;transform:none}
+.line:nth-last-child(-n+3){opacity:.6;transform:scale(.985)}.line:nth-last-child(-n+1){opacity:1;transform:none}
 .who{display:flex;align-items:center;gap:8px;font-size:calc(var(--s)*.3);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--fr);margin:0 4px 8px}
 .who{color:var(--c)}
 .t{font-size:var(--s);font-weight:800;line-height:1.18;letter-spacing:-.01em;padding:14px 22px;border-radius:18px;background:rgba(14,16,24,.85);border:1px solid rgba(91,140,255,.35);box-shadow:0 10px 40px rgba(0,0,0,.45),inset 4px 0 0 var(--fr)}
@@ -44,6 +44,14 @@ mark.n{color:var(--num)}
 .hide #corner{display:block}
 .empty{margin:auto;text-align:center;color:#6b7186;font-size:22px;line-height:1.6}
 .empty b{color:#fff}
+dialog{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:#12141c;color:#fff;padding:24px;min-width:340px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+dialog h3{margin:0 0 16px;font-size:20px}
+dialog label{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;font-size:13px;color:#9aa0b4;font-weight:600}
+dialog input,dialog select{font:inherit;font-size:17px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#1b1e29;color:#fff}
+.mb{display:flex;gap:8px;align-items:center}.mb span{flex:1}.ghost{background:transparent}
+.line.cur .t{outline:2px solid color-mix(in srgb,var(--c) 70%,transparent);outline-offset:3px}
+.num{opacity:.55;font-weight:600}
 </style></head><body>
 <div class="bar">
 <div class="brand">Live<span>Subtitles</span></div>
@@ -52,22 +60,23 @@ mark.n{color:var(--num)}
 <button id="minus">A−</button><button id="plus">A+</button>
 <button id="clear">Effacer</button>
 <button id="hide">Plein écran sous-titres</button>
-<span class="st"><span class="dot"></span><span id="st">Prêt · Espace ou 1-4 = qui parle · double-clic = renommer</span></span>
+<span class="st"><span class="dot"></span><span id="st">Prêt · Espace ou 1-9 = qui parle · double-clic = modifier</span></span>
 </div>
 <div id="corner"></div>
+<dialog id="modal"><form><h3>Intervenant</h3><label>Prénom<input id="mn" autocomplete="off"></label><label>Langue parlée<select id="ml"></select></label><div class="mb"><button id="mdel" class="ghost">Supprimer</button><span></span><button id="mcancel" class="ghost">Annuler</button><button id="mok" class="go">Enregistrer</button></div></form></dialog>
 <div id="log"><div class="empty" id="empty">Clique sur <b>▶ Démarrer</b> et parle.<br>Espace pour passer la parole · Échap pour les réglages</div></div>
 <script>
 const $=i=>document.getElementById(i);
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const COL=["#5b8cff","#ff7a45","#2fd39a","#d16bff","#ffcc4d","#ff5c8a"];
-const LANGS={"fr-FR":"Français","en-US":"English","es-ES":"Español","de-DE":"Deutsch","it-IT":"Italiano"};
+const LANGS={"fr-FR":"🇫🇷 Français","en-US":"🇬🇧 English","es-ES":"🇪🇸 Español","de-DE":"🇩🇪 Deutsch","it-IT":"🇮🇹 Italiano","pt-PT":"🇵🇹 Português","pt-BR":"🇧🇷 Português (BR)","nl-NL":"🇳🇱 Nederlands","ar-SA":"🇸🇦 العربية","zh-CN":"🇨🇳 中文","ja-JP":"🇯🇵 日本語","ko-KR":"🇰🇷 한국어","ru-RU":"🇷🇺 Русский","uk-UA":"🇺🇦 Українська","hi-IN":"🇮🇳 हिन्दी","tr-TR":"🇹🇷 Türkçe","pl-PL":"🇵🇱 Polski","sv-SE":"🇸🇪 Svenska","el-GR":"🇬🇷 Ελληνικά","he-IL":"🇮🇱 עברית","ro-RO":"🇷🇴 Română","vi-VN":"🇻🇳 Tiếng Việt","id-ID":"🇮🇩 Bahasa Indonesia","fa-IR":"🇮🇷 فارسی"};
 let P;try{P=JSON.parse(localStorage.getItem("spk"))}catch(e){}
 if(!P||!P.length)P=[{n:"Baptiste",l:"fr-FR"},{n:"Interlocuteur",l:"en-US"}];
-let cur=0,auto=false,rec,on=false,size=52,live=null,seq=0,timer=null,lastQ="",det=null;
+let turn=0,cur=0,auto=false,rec,on=false,size=56,live=null,seq=0,timer=null,lastQ="",det=null;
 const save=()=>{try{localStorage.setItem("spk",JSON.stringify(P))}catch(e){}};
-const code=v=>v.slice(0,2);
-const fix=t=>t.replace(/(small |little )?lipoprotein\s*(petit|little|small)?\s*\(?a\)?(?=[\s.,;:!?]|$)/gi,"Lp(a)").replace(/lipoprot\w*\s*petit\s*a\b/gi,"Lp(a)").replace(/\bLP ?\(a\)|\bLPA\b/gi,"Lp(a)").replace(/\b(obese (patients|people|subjects)|patients in obesity|patients in a situation of obesity)\b/gi,"patients with obesity").replace(/\bnon-obese\b/gi,"without obesity");
-const KEY=/(Lp\(a\)|\b(LDL|HDL|HbA1c|GLP-1|PCSK9|apolipoprot\w*\s?B|obesity|obésité|diabetes|diabète|cardiovascula\w*|risk|risque|cholest\w*|insulin\w*|statin\w*|study|étude|treatment|traitement|nutrition\w*|sport\w*|mortality|mortalité|survival|survie|cohort\w*)\b)/gi;
+const code=v=>v==="zh-CN"?"zh":v.slice(0,2);
+const fix=t=>t.replace(/(small |little )?lipoprotein\s*(petit|little|small)?\s*\(?a\)?(?=[\s.,;:!?]|$)/gi,"Lp(a)").replace(/lipoprot\w*\s*petit\s*a\b/gi,"Lp(a)").replace(/\bLP ?\(a\)|\bLPA\b/gi,"Lp(a)").replace(/\b(obese (patients|people|subjects)|patients in obesity|patients in a situation of obesity|obesity patients)\b/gi,"patients with obesity").replace(/\bnon-obese\b/gi,"without obesity");
+const KEY=/(Lp\(a\)|(?<![\p{L}])(LDL|HDL|HbA1c|GLP-1|PCSK9|apolipoprot\p{L}*\s?B|obesity|obésité|diabetes|diabète|cardiovascula\p{L}*|risk|risque|cholest\p{L}*|insulin\p{L}*|statin\p{L}*|study|étude|treatment|traitement|nutrition\p{L}*|sport\p{L}*|mortality|mortalité|survival|survie|cohort\p{L}*)(?![\p{L}]))/giu;
 const esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 const hl=t=>esc(t).replace(KEY,'<mark>$1</mark>').replace(/(^|[\s(])(\d+([.,]\d+)?\s?(%|mg\/dL|mg|kg|g\/L|mmol\/L|ans|years|ml)?)/g,'$1<mark class="n">$2</mark>');
 const target=i=>{const own=code(P[i].l);const o=P.find((p,j)=>j!==i&&code(p.l)!==own);return o?code(o.l):(own==="fr"?"en":"fr")};
@@ -77,13 +86,13 @@ async function web(text,sl,tl){const r=await fetch("https://translate.googleapis
 async function tr(text,sl,tl,final){if(sl===tl)return text;for(const f of final?[web,local]:[local,web]){try{return fix(await f(text,sl,tl))}catch(e){}}return "⚠️ Traduction indisponible : vérifie Internet ou mets Chrome à jour"}
 async function detect(text){try{if(window.LanguageDetector){if(!det)det=await LanguageDetector.create();return (await det.detect(text))[0]?.detectedLanguage}}catch(e){}return null}
 function draw(){const box=$("spk");box.innerHTML="";P.forEach((p,i)=>{const b=document.createElement("button");b.style.setProperty("--c",COL[i%COL.length]);b.className=i===cur&&!auto?"act":"";b.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+COL[i%COL.length]+'"></span>'+esc(p.n)+' <small style="opacity:.7">'+code(p.l).toUpperCase()+'</small>';b.title="Double-clic : renommer / changer de langue";b.onclick=()=>pick(i);b.ondblclick=()=>edit(i);box.appendChild(b)});$("ma").classList.toggle("act",auto);corner()}
-function edit(i){const n=prompt("Prénom :",P[i].n);if(n===null)return;const l=prompt("Langue parlée : fr, en, es, de ou it",code(P[i].l));const m={fr:"fr-FR",en:"en-US",es:"es-ES",de:"de-DE",it:"it-IT"}[(l||"").trim().toLowerCase()];P[i]={n:n.trim()||P[i].n,l:m||P[i].l};save();draw();if(on)rec.abort()}
+function edit(i){const m=$("modal");$("mn").value=P[i].n;$("ml").innerHTML=Object.entries(LANGS).map(([k,v])=>'<option value="'+k+'"'+(k===P[i].l?" selected":"")+'>'+v+'</option>').join("");m.dataset.i=i;$("mdel").style.display=P.length>2?"":"none";m.showModal();setTimeout(()=>$("mn").select(),50)}
 function pick(i){cur=i;auto=false;if(live){live.classList.remove("live");live=null}draw();if(on)rec.abort()}
-function newLine(i,sl,tl){$("empty")?.remove();const d=document.createElement("div");d.className="line live"+(i%2?" r":"");d.style.setProperty("--c",COL[i%COL.length]);d.innerHTML='<div class="who">● '+esc(P[i].n)+' · '+code(sl).toUpperCase()+' → '+tl.toUpperCase()+'</div><div class="t"></div><div class="o"></div>';$("log").appendChild(d);while($("log").children.length>40)$("log").firstChild.remove();return d}
+function newLine(i,sl,tl){$("empty")?.remove();const d=document.createElement("div");d.className="line live"+(i%2?" r":"");d.style.setProperty("--c",COL[i%COL.length]);d.innerHTML='<div class="who">● '+esc(P[i].n)+' · '+code(sl).toUpperCase()+' → '+tl.toUpperCase()+' <span class="num">#'+(++turn)+' · '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'</span></div><div class="t" dir="auto"></div><div class="o" dir="auto"></div>';$("log").appendChild(d);while($("log").children.length>40)$("log").firstChild.remove();return d}
 function scroll(){$("log").scrollTop=$("log").scrollHeight}
 async function update(text,final){
  let i=cur;
- if(auto&&final){const l=await detect(text);const j=P.findIndex(p=>code(p.l)===l);if(j>=0)i=j;if(live){live.remove();live=null}}
+ if(auto&&final){const l=await detect(text);const j=P.findIndex(p=>code(p.l)===(l||"").slice(0,2));if(j>=0)i=j;if(live){live.remove();live=null}}
  const sl=code(P[i].l),tl=target(i);
  if(!live)live=newLine(i,sl,tl);
  const el=live;el.querySelector(".o").textContent=text;scroll();
@@ -108,8 +117,11 @@ $("ma").onclick=()=>{auto=!auto;draw()};
 $("go").onclick=()=>on?stop():start();
 $("plus").onclick=()=>{size+=6;document.documentElement.style.setProperty("--s",size+"px")};
 $("minus").onclick=()=>{size=Math.max(20,size-6);document.documentElement.style.setProperty("--s",size+"px")};
-$("clear").onclick=()=>{$("log").innerHTML="";live=null};
+$("clear").onclick=()=>{$("log").innerHTML="";live=null;turn=0};
 $("hide").onclick=()=>{document.body.classList.add("hide");document.documentElement.requestFullscreen?.().catch(()=>{})};
-addEventListener("keydown",e=>{if(e.key==="Escape")document.body.classList.remove("hide");if(e.target.tagName==="INPUT")return;if(e.code==="Space"){e.preventDefault();pick((cur+1)%P.length)}const n=+e.key;if(n>=1&&n<=P.length)pick(n-1)});
+addEventListener("keydown",e=>{if(e.key==="Escape")document.body.classList.remove("hide");if(e.target.closest&&e.target.closest("dialog"))return;if(e.target.tagName==="INPUT")return;if(e.code==="Space"){e.preventDefault();pick((cur+1)%P.length)}const n=+e.key;if(n>=1&&n<=Math.min(9,P.length))pick(n-1)});
 draw();
+$("mok").onclick=e=>{e.preventDefault();const i=+$("modal").dataset.i;P[i]={n:$("mn").value.trim()||P[i].n,l:$("ml").value};save();$("modal").close();draw();if(on)rec.abort()};
+$("mdel").onclick=e=>{e.preventDefault();const i=+$("modal").dataset.i;P.splice(i,1);if(cur>=P.length)cur=0;save();$("modal").close();draw()};
+$("mcancel").onclick=e=>{e.preventDefault();$("modal").close()};
 </script></body></html>
