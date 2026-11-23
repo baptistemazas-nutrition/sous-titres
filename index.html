@@ -55,7 +55,7 @@ dialog input,dialog select{font:inherit;font-size:17px;padding:10px 12px;border-
 </style></head><body>
 <div class="bar">
 <div class="brand">Live<span>Subtitles</span></div>
-<div id="spk" class="seg"></div><button id="add">+ Personne</button><button id="ma" class="autob">Auto langue</button>
+<div id="spk" class="seg"></div><button id="add">+ Personne</button><button id="ma" class="autob">Auto langue</button><button id="pro" class="autob">✨ Mode Pro</button>
 <button class="go" id="go">▶ Démarrer</button>
 <button id="minus">A−</button><button id="plus">A+</button>
 <button id="clear">Effacer</button>
@@ -64,6 +64,7 @@ dialog input,dialog select{font:inherit;font-size:17px;padding:10px 12px;border-
 </div>
 <div id="corner"></div>
 <dialog id="modal"><form><h3>Intervenant</h3><label>Prénom<input id="mn" autocomplete="off"></label><label>Langue parlée<select id="ml"></select></label><div class="mb"><button id="mdel" class="ghost">Supprimer</button><span></span><button id="mcancel" class="ghost">Annuler</button><button id="mok" class="go">Enregistrer</button></div></form></dialog>
+<dialog id="pdlg"><form><h3>✨ Mode Pro — reconnaissance des voix</h3><p style="color:#9aa0b4;font-size:14px;line-height:1.5;max-width:460px">Reconnaît automatiquement <b>qui parle</b> (Intervenant 1, 2, 3…), <b>la langue de chacun</b> et traduit dans les deux sens, sans appuyer sur aucune touche. Service Soniox (≈ 0,12 $ par heure). Colle ta clé API Soniox : elle reste uniquement dans ce navigateur.</p><label>Clé API Soniox<input id="pkey" autocomplete="off" placeholder="colle ta clé ici"></label><label>Langue A<select id="pla"></select></label><label>Langue B<select id="plb"></select></label><div class="mb"><button id="poff" class="ghost">Désactiver</button><span></span><button id="pcancel" class="ghost">Annuler</button><button id="pok" class="go">Activer</button></div></form></dialog>
 <div id="log"><div class="empty" id="empty">Clique sur <b>▶ Démarrer</b> et parle.<br>Espace pour passer la parole · Échap pour les réglages</div></div>
 <script>
 const $=i=>document.getElementById(i);
@@ -78,7 +79,7 @@ const code=v=>v==="zh-CN"?"zh":v.slice(0,2);
 const fix=t=>t.replace(/(small |little )?lipoprotein\s*(petit|little|small)?\s*\(?a\)?(?=[\s.,;:!?]|$)/gi,"Lp(a)").replace(/lipoprot\w*\s*petit\s*a\b/gi,"Lp(a)").replace(/\bLP ?\(a\)|\bLPA\b/gi,"Lp(a)").replace(/\b(obese (patients|people|subjects)|patients in obesity|patients in a situation of obesity|obesity patients)\b/gi,"patients with obesity").replace(/\bnon-obese\b/gi,"without obesity");
 const KEY=/(Lp\(a\)|(?<![\p{L}])(LDL|HDL|HbA1c|GLP-1|PCSK9|apolipoprot\p{L}*\s?B|obesity|obésité|diabetes|diabète|cardiovascula\p{L}*|risk|risque|cholest\p{L}*|insulin\p{L}*|statin\p{L}*|study|étude|treatment|traitement|nutrition\p{L}*|sport\p{L}*|mortality|mortalité|survival|survie|cohort\p{L}*)(?![\p{L}]))/giu;
 const esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-const hl=t=>esc(t).replace(KEY,'<mark>$1</mark>').replace(/(^|[\s(])(\d+([.,]\d+)?\s?(%|mg\/dL|mg|kg|g\/L|mmol\/L|ans|years|ml)?)/g,'$1<mark class="n">$2</mark>');
+window.__hl=t=>hl(t);const hl=t=>esc(t).replace(KEY,'<mark>$1</mark>').replace(/(^|[\s(])(\d+([.,]\d+)?\s?(%|mg\/dL|mg|kg|g\/L|mmol\/L|ans|years|ml)?)/g,'$1<mark class="n">$2</mark>');
 const target=i=>{const own=code(P[i].l);const o=P.find((p,j)=>j!==i&&code(p.l)!==own);return o?code(o.l):(own==="fr"?"en":"fr")};
 const T={};
 async function local(text,sl,tl){if(!window.Translator)throw 0;const k=sl+tl;if(!T[k])T[k]=Translator.create({sourceLanguage:sl,targetLanguage:tl});return (await T[k]).translate(text)}
@@ -124,4 +125,33 @@ draw();
 $("mok").onclick=e=>{e.preventDefault();const i=+$("modal").dataset.i;P[i]={n:$("mn").value.trim()||P[i].n,l:$("ml").value};save();$("modal").close();draw();if(on)rec.abort()};
 $("mdel").onclick=e=>{e.preventDefault();const i=+$("modal").dataset.i;P.splice(i,1);if(cur>=P.length)cur=0;save();$("modal").close();draw()};
 $("mcancel").onclick=e=>{e.preventDefault();$("modal").close()};
+</script>
+<script type="module">
+const $=i=>document.getElementById(i);
+const COL=["#5b8cff","#ff7a45","#2fd39a","#d16bff","#ffcc4d","#ff5c8a"];
+const L2={fr:"🇫🇷 Français",en:"🇬🇧 English",es:"🇪🇸 Español",de:"🇩🇪 Deutsch",it:"🇮🇹 Italiano",pt:"🇵🇹 Português",nl:"🇳🇱 Nederlands",ar:"🇸🇦 العربية",zh:"🇨🇳 中文",ja:"🇯🇵 日本語",ko:"🇰🇷 한국어",ru:"🇷🇺 Русский",uk:"🇺🇦 Українська",hi:"🇮🇳 हिन्दी",tr:"🇹🇷 Türkçe",pl:"🇵🇱 Polski",sv:"🇸🇪 Svenska",el:"🇬🇷 Ελληνικά",he:"🇮🇱 עברית",ro:"🇷🇴 Română",vi:"🇻🇳 Tiếng Việt",id:"🇮🇩 Bahasa Indonesia",fa:"🇮🇷 فارسی"};
+const g=k=>{try{return localStorage.getItem(k)}catch(e){return null}},sv=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+let names={};try{names=JSON.parse(g("pnames")||"{}")}catch(e){}
+const opts=sel=>Object.entries(L2).map(([k,v])=>'<option value="'+k+'"'+(k===sel?" selected":"")+'>'+v+'</option>').join("");
+function proOn(){return !!g("pkey")}
+function mark(){$("pro").classList.toggle("act",proOn());$("pro").textContent=proOn()?"✨ Mode Pro actif":"✨ Mode Pro";["spk","add","ma"].forEach(id=>$(id).style.display=proOn()?"none":"")}
+$("pro").onclick=()=>{$("pkey").value=g("pkey")||"";$("pla").innerHTML=opts(g("pla")||"fr");$("plb").innerHTML=opts(g("plb")||"en");$("pdlg").showModal()};
+$("pok").onclick=e=>{e.preventDefault();const k=$("pkey").value.trim();if(k){sv("pkey",k);sv("pla",$("pla").value);sv("plb",$("plb").value)}$("pdlg").close();mark()};
+$("poff").onclick=e=>{e.preventDefault();sv("pkey",null);$("pdlg").close();mark()};
+$("pcancel").onclick=e=>{e.preventDefault();$("pdlg").close()};
+mark();
+let client=null,fin=[],nonfin=[],running=false;
+const esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function segs(){const out=[];let cur=null;for(const t of fin.concat(nonfin)){const st=t.translation_status||"none";const sp=t.speaker||"1";if(st!=="translation"){if(!cur||cur.sp!==sp){cur={sp,orig:"",tr:"",lang:t.language,live:false};out.push(cur)}cur.orig+=t.text;if(t.language)cur.lang=t.language;if(!t.is_final)cur.live=true}else{let s=null;for(let i=out.length-1;i>=0;i--)if(out[i].sp===sp){s=out[i];break}(s||cur||(cur={sp,orig:"",tr:"",live:false},out.push(cur),cur)).tr+=t.text;if(!t.is_final&&s)s.live=true}}return out}
+function render(){const L=$("log");const ss=segs().filter(s=>s.orig.trim()||s.tr.trim()).slice(-30);L.innerHTML=ss.map((s,k)=>{const i=(+s.sp-1)%COL.length;const nm=names[s.sp]||("Intervenant "+s.sp);const la=(s.lang||"").toUpperCase();const ta=la?(la===(g("pla")||"fr").toUpperCase()?(g("plb")||"en"):(g("pla")||"fr")).toUpperCase():"";return '<div class="line'+(s.live?" live":"")+(i%2?" r":"")+'" style="--c:'+COL[i<0?0:i]+'"><div class="who" data-sp="'+s.sp+'" style="cursor:pointer" title="Cliquer pour nommer">● '+esc(nm)+(la?' · '+la+' → '+ta:'')+' <span class="num">#'+(k+1)+'</span></div><div class="t" dir="auto">'+window.__hl(s.tr.trim()||"…")+'</div><div class="o" dir="auto">'+esc(s.orig.trim())+'</div></div>'}).join("")||'<div class="empty">Parle : les voix sont reconnues automatiquement.</div>';L.scrollTop=L.scrollHeight}
+$("log").addEventListener("click",e=>{const w=e.target.closest(".who[data-sp]");if(!w||!proOn())return;const sp=w.dataset.sp;const n=prompt("Prénom de l'intervenant "+sp+" :",names[sp]||"");if(n!==null){names[sp]=n.trim()||undefined;sv("pnames",JSON.stringify(names));render()}});
+async function proStart(){const {SonioxClient}=await import("https://cdn.jsdelivr.net/npm/@soniox/speech-to-text-web@1.4.0/+esm");
+ fin=[];nonfin=[];$("log").innerHTML="";client=new SonioxClient({apiKey:g("pkey")});running=true;
+ client.start({model:"stt-rt-v6",enableSpeakerDiarization:true,enableLanguageIdentification:true,enableEndpointDetection:true,languageHints:[g("pla")||"fr",g("plb")||"en"],translation:{type:"two_way",language_a:g("pla")||"fr",language_b:g("plb")||"en"},
+  onPartialResult(r){for(const t of r.tokens)if(t.is_final)fin.push(t);nonfin=r.tokens.filter(t=>!t.is_final);if(fin.length>4000)fin=fin.slice(-3000);render()},
+  onError(status,msg){$("st").textContent="Mode Pro : "+(msg||status)+" — vérifie ta clé";running=false;document.body.classList.remove("on");$("go").textContent="▶ Démarrer"},
+  onFinished(){running=false}});
+ document.body.classList.add("on");$("go").textContent="■ Arrêter";$("st").textContent="Mode Pro · voix reconnues automatiquement"}
+function proStop(){try{client&&client.stop()}catch(e){}running=false;document.body.classList.remove("on");$("go").textContent="▶ Démarrer";$("st").textContent="Arrêté"}
+$("go").addEventListener("click",e=>{if(!proOn())return;e.stopImmediatePropagation();running?proStop():proStart()},true);
 </script></body></html>
