@@ -17,7 +17,7 @@ select option{color:#000}
 .seg button{border:0;border-radius:0;background:transparent}
 .seg button.act{background:var(--fr)}
 .seg button.act.en{background:var(--en)}
-.seg button.act.auto{background:#7c5cff}
+.seg button{display:flex;align-items:center;gap:6px}.seg button.act{background:var(--c)!important}.autob.act{background:#7c5cff}
 .st{color:#9aa0b4;margin-left:auto;display:flex;align-items:center;gap:8px}
 .dot{width:10px;height:10px;border-radius:50%;background:#555}
 .on .dot{background:#3ddc84;box-shadow:0 0 0 0 #3ddc84;animation:p 1.6s infinite}
@@ -26,12 +26,12 @@ select option{color:#000}
 #log::-webkit-scrollbar{display:none}
 #log>:first-child{margin-top:auto}
 .line{display:flex;flex-direction:column;max-width:92%;opacity:.38;transform:scale(.97);transform-origin:left bottom;transition:opacity .4s,transform .4s}
-.line.en{align-self:flex-end;align-items:flex-end;transform-origin:right bottom}
+.line.r{align-self:flex-end;align-items:flex-end;transform-origin:right bottom}
 .line:nth-last-child(-n+2){opacity:1;transform:none}
 .who{display:flex;align-items:center;gap:8px;font-size:calc(var(--s)*.3);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--fr);margin:0 4px 8px}
-.en .who{color:var(--en)}
+.who{color:var(--c)}
 .t{font-size:var(--s);font-weight:800;line-height:1.18;letter-spacing:-.01em;padding:14px 22px;border-radius:18px;background:rgba(14,16,24,.85);border:1px solid rgba(91,140,255,.35);box-shadow:0 10px 40px rgba(0,0,0,.45),inset 4px 0 0 var(--fr)}
-.en .t{border-color:rgba(255,122,69,.35);box-shadow:0 10px 40px rgba(0,0,0,.45),inset -4px 0 0 var(--en);text-align:right}
+.r .t{text-align:right;}.t{border-color:color-mix(in srgb,var(--c) 40%,transparent)!important;box-shadow:0 10px 40px rgba(0,0,0,.45),inset 4px 0 0 var(--c)!important}.r .t{box-shadow:0 10px 40px rgba(0,0,0,.45),inset -4px 0 0 var(--c)!important}.xx{border-color:rgba(255,122,69,.35);box-shadow:0 10px 40px rgba(0,0,0,.45),inset -4px 0 0 var(--en);text-align:right}
 .t .w{display:inline;animation:in .25s ease-out}
 @keyframes in{from{opacity:0;filter:blur(4px)}to{opacity:1;filter:none}}
 .live .t::after{content:"";display:inline-block;width:.08em;height:.9em;margin-left:.12em;vertical-align:-.1em;background:var(--key);animation:b 1s steps(1) infinite}
@@ -47,66 +47,69 @@ mark.n{color:var(--num)}
 </style></head><body>
 <div class="bar">
 <div class="brand">Live<span>Subtitles</span></div>
-<select id="L1"><option value="fr-FR">🇫🇷 Français</option><option value="en-US">🇬🇧 Anglais</option><option value="es-ES">🇪🇸 Espagnol</option><option value="de-DE">🇩🇪 Allemand</option><option value="it-IT">🇮🇹 Italien</option></select>
-<span>⇄</span>
-<select id="L2"><option value="en-US">🇬🇧 Anglais</option><option value="fr-FR">🇫🇷 Français</option><option value="es-ES">🇪🇸 Espagnol</option><option value="de-DE">🇩🇪 Allemand</option><option value="it-IT">🇮🇹 Italien</option></select>
-<div class="seg"><button id="m1" class="act">Moi</button><button id="m2" class="en">Interlocuteur</button><button id="ma" class="auto">Auto (bêta)</button></div>
+<div id="spk" class="seg"></div><button id="add">+ Personne</button><button id="ma" class="autob">Auto langue</button>
 <button class="go" id="go">▶ Démarrer</button>
 <button id="minus">A−</button><button id="plus">A+</button>
 <button id="clear">Effacer</button>
 <button id="hide">Plein écran sous-titres</button>
-<span class="st"><span class="dot"></span><span id="st">Prêt · Espace = changer d'orateur</span></span>
+<span class="st"><span class="dot"></span><span id="st">Prêt · Espace ou 1-4 = qui parle · double-clic = renommer</span></span>
 </div>
 <div id="corner"></div>
 <div id="log"><div class="empty" id="empty">Clique sur <b>▶ Démarrer</b> et parle.<br>Espace pour passer la parole · Échap pour les réglages</div></div>
 <script>
 const $=i=>document.getElementById(i);
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let rec,on=false,size=52,mode=1,live=null,seq=0,timer=null,lastQ="",det=null;
-const code=v=>v.slice(0,2),name={fr:"Français",en:"English",es:"Español",de:"Deutsch",it:"Italiano"};
-const fix=t=>t.replace(/(small |little )?lipoprotein\s*(petit|little|small)?\s*\(?a\)?(?=[\s.,;:!?]|$)/gi,"Lp(a)").replace(/lipoprot\w*\s*petit\s*a\b/gi,"Lp(a)").replace(/\bLP ?\(a\)|\bLPA\b/gi,"Lp(a)").replace(/\bobese (patients|people|subjects)\b/gi,"patients with obesity").replace(/\bnon-obese\b/gi,"without obesity");
+const COL=["#5b8cff","#ff7a45","#2fd39a","#d16bff","#ffcc4d","#ff5c8a"];
+const LANGS={"fr-FR":"Français","en-US":"English","es-ES":"Español","de-DE":"Deutsch","it-IT":"Italiano"};
+let P;try{P=JSON.parse(localStorage.getItem("spk"))}catch(e){}
+if(!P||!P.length)P=[{n:"Baptiste",l:"fr-FR"},{n:"Interlocuteur",l:"en-US"}];
+let cur=0,auto=false,rec,on=false,size=52,live=null,seq=0,timer=null,lastQ="",det=null;
+const save=()=>{try{localStorage.setItem("spk",JSON.stringify(P))}catch(e){}};
+const code=v=>v.slice(0,2);
+const fix=t=>t.replace(/(small |little )?lipoprotein\s*(petit|little|small)?\s*\(?a\)?(?=[\s.,;:!?]|$)/gi,"Lp(a)").replace(/lipoprot\w*\s*petit\s*a\b/gi,"Lp(a)").replace(/\bLP ?\(a\)|\bLPA\b/gi,"Lp(a)").replace(/\b(obese (patients|people|subjects)|patients in obesity|patients in a situation of obesity)\b/gi,"patients with obesity").replace(/\bnon-obese\b/gi,"without obesity");
 const KEY=/(Lp\(a\)|\b(LDL|HDL|HbA1c|GLP-1|PCSK9|apolipoprot\w*\s?B|obesity|obésité|diabetes|diabète|cardiovascula\w*|risk|risque|cholest\w*|insulin\w*|statin\w*|study|étude|treatment|traitement|nutrition\w*|sport\w*|mortality|mortalité|survival|survie|cohort\w*)\b)/gi;
 const esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 const hl=t=>esc(t).replace(KEY,'<mark>$1</mark>').replace(/(^|[\s(])(\d+([.,]\d+)?\s?(%|mg\/dL|mg|kg|g\/L|mmol\/L|ans|years|ml)?)/g,'$1<mark class="n">$2</mark>');
-const speaker=()=>mode===2?{rec:$("L2").value,sl:code($("L2").value),tl:code($("L1").value),cls:"en",who:"Interlocuteur"}:{rec:$("L1").value,sl:code($("L1").value),tl:code($("L2").value),cls:"fr",who:"Moi"};
+const target=i=>{const own=code(P[i].l);const o=P.find((p,j)=>j!==i&&code(p.l)!==own);return o?code(o.l):(own==="fr"?"en":"fr")};
 const T={};
 async function local(text,sl,tl){if(!window.Translator)throw 0;const k=sl+tl;if(!T[k])T[k]=Translator.create({sourceLanguage:sl,targetLanguage:tl});return (await T[k]).translate(text)}
 async function web(text,sl,tl){const r=await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl="+sl+"&tl="+tl+"&q="+encodeURIComponent(text)).then(r=>r.json());return r[0].map(x=>x[0]).join("")}
 async function tr(text,sl,tl,final){if(sl===tl)return text;for(const f of final?[web,local]:[local,web]){try{return fix(await f(text,sl,tl))}catch(e){}}return "⚠️ Traduction indisponible : vérifie Internet ou mets Chrome à jour"}
-async function detect(text){try{if(window.LanguageDetector){if(!det)det=await LanguageDetector.create();const r=await det.detect(text);return r[0]?.detectedLanguage}}catch(e){}return null}
-function newLine(s){$("empty")?.remove();const d=document.createElement("div");d.className="line live "+s.cls;d.innerHTML='<div class="who">'+(s.cls==="fr"?"● ":"")+s.who+' · '+name[s.sl]+' → '+name[s.tl]+(s.cls==="en"?" ●":"")+'</div><div class="t"></div><div class="o"></div>';$("log").appendChild(d);while($("log").children.length>40)$("log").firstChild.remove();return d}
-function paint(el,html){const t=el.querySelector(".t");const old=t.textContent;t.innerHTML=html;if(old&&t.textContent.startsWith(old.slice(0,-3)))return;t.classList.remove("fade");void t.offsetWidth}
+async function detect(text){try{if(window.LanguageDetector){if(!det)det=await LanguageDetector.create();return (await det.detect(text))[0]?.detectedLanguage}}catch(e){}return null}
+function draw(){const box=$("spk");box.innerHTML="";P.forEach((p,i)=>{const b=document.createElement("button");b.style.setProperty("--c",COL[i%COL.length]);b.className=i===cur&&!auto?"act":"";b.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+COL[i%COL.length]+'"></span>'+esc(p.n)+' <small style="opacity:.7">'+code(p.l).toUpperCase()+'</small>';b.title="Double-clic : renommer / changer de langue";b.onclick=()=>pick(i);b.ondblclick=()=>edit(i);box.appendChild(b)});$("ma").classList.toggle("act",auto);corner()}
+function edit(i){const n=prompt("Prénom :",P[i].n);if(n===null)return;const l=prompt("Langue parlée : fr, en, es, de ou it",code(P[i].l));const m={fr:"fr-FR",en:"en-US",es:"es-ES",de:"de-DE",it:"it-IT"}[(l||"").trim().toLowerCase()];P[i]={n:n.trim()||P[i].n,l:m||P[i].l};save();draw();if(on)rec.abort()}
+function pick(i){cur=i;auto=false;if(live){live.classList.remove("live");live=null}draw();if(on)rec.abort()}
+function newLine(i,sl,tl){$("empty")?.remove();const d=document.createElement("div");d.className="line live"+(i%2?" r":"");d.style.setProperty("--c",COL[i%COL.length]);d.innerHTML='<div class="who">● '+esc(P[i].n)+' · '+code(sl).toUpperCase()+' → '+tl.toUpperCase()+'</div><div class="t"></div><div class="o"></div>';$("log").appendChild(d);while($("log").children.length>40)$("log").firstChild.remove();return d}
 function scroll(){$("log").scrollTop=$("log").scrollHeight}
 async function update(text,final){
- let s=speaker();
- if(mode===3&&final){const l=await detect(text);const a=code($("L1").value),b=code($("L2").value);s=l===b?{sl:b,tl:a,cls:"en",who:"Interlocuteur"}:{sl:a,tl:b,cls:"fr",who:"Moi"};if(live){live.remove();live=null}}
- else if(mode===3)s={sl:code($("L1").value),tl:code($("L2").value),cls:"fr",who:"…"};
- if(!live)live=newLine(s);
+ let i=cur;
+ if(auto&&final){const l=await detect(text);const j=P.findIndex(p=>code(p.l)===l);if(j>=0)i=j;if(live){live.remove();live=null}}
+ const sl=code(P[i].l),tl=target(i);
+ if(!live)live=newLine(i,sl,tl);
  const el=live;el.querySelector(".o").textContent=text;scroll();
  const id=++seq;
- const go=async()=>{const out=await tr(text,s.sl,s.tl,final);if(final||id===seq){paint(el,hl(out));scroll()}};
+ const go=async()=>{const out=await tr(text,sl,tl,final);if(final||id===seq){el.querySelector(".t").innerHTML=hl(out);scroll()}};
  if(final){clearTimeout(timer);el.classList.remove("live");live=null;lastQ="";go()}
  else if(text!==lastQ){lastQ=text;clearTimeout(timer);timer=setTimeout(go,60)}
 }
 function start(){
  if(!SR){$("st").textContent="Ouvre cette page avec Google Chrome";return}
- for(const[a,b]of[[code($("L1").value),code($("L2").value)],[code($("L2").value),code($("L1").value)]])if(window.Translator)local("ok",a,b).catch(()=>{});
- rec=new SR();rec.lang=speaker().rec;rec.continuous=true;rec.interimResults=true;
- rec.onresult=e=>{let interim="";for(let i=e.resultIndex;i<e.results.length;i++){const r=e.results[i];if(r.isFinal)update(r[0].transcript.trim(),true);else interim+=r[0].transcript}if(interim.trim())update(interim.trim(),false)};
+ P.forEach((p,i)=>local("ok",code(p.l),target(i)).catch(()=>{}));
+ rec=new SR();rec.lang=P[cur].l;rec.continuous=true;rec.interimResults=true;
+ rec.onresult=e=>{let interim="";for(let k=e.resultIndex;k<e.results.length;k++){const r=e.results[k];if(r.isFinal)update(r[0].transcript.trim(),true);else interim+=r[0].transcript}if(interim.trim())update(interim.trim(),false)};
  rec.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){on=false;$("st").textContent="Micro refusé : icône à gauche de l'adresse → Micro → Autoriser"}else if(e.error==="audio-capture"){$("st").textContent="Aucun micro : choisis « Micro MacBook Pro » dans les réglages du site"}};
- rec.onend=()=>{if(live){live.classList.remove("live");live=null}if(on)setTimeout(()=>{try{rec.lang=speaker().rec;rec.start()}catch(e){}},80)};
+ rec.onend=()=>{if(live){live.classList.remove("live");live=null}if(on)setTimeout(()=>{try{rec.lang=P[cur].l;rec.start()}catch(e){}},80)};
  on=true;rec.start();document.body.classList.add("on");$("go").textContent="■ Arrêter";$("st").textContent="Micro actif";corner();
 }
-function stop(){on=false;rec&&rec.stop();document.body.classList.remove("on");$("go").textContent="▶ Démarrer";$("st").textContent="Arrêté"}
-function corner(){$("corner").textContent=(mode===3?"Auto":mode===1?"Moi":"Interlocuteur")+" · "+(on?"● en écoute":"arrêté")}
-function setMode(m){mode=m;["m1","m2","ma"].forEach((id,i)=>$(id).classList.toggle("act",i+1===m));if(live){live.classList.remove("live");live=null}if(on)rec.abort();corner()}
-$("m1").onclick=()=>setMode(1);$("m2").onclick=()=>setMode(2);$("ma").onclick=()=>setMode(3);
+function stop(){on=false;rec&&rec.stop();document.body.classList.remove("on");$("go").textContent="▶ Démarrer";$("st").textContent="Arrêté";corner()}
+function corner(){$("corner").textContent=(auto?"Auto langue":P[cur].n)+" · "+(on?"● en écoute":"arrêté")}
+$("add").onclick=()=>{P.push({n:"Personne "+(P.length+1),l:"en-US"});save();draw();edit(P.length-1)};
+$("ma").onclick=()=>{auto=!auto;draw()};
 $("go").onclick=()=>on?stop():start();
-$("L1").onchange=$("L2").onchange=()=>{if(on)rec.abort()};
 $("plus").onclick=()=>{size+=6;document.documentElement.style.setProperty("--s",size+"px")};
 $("minus").onclick=()=>{size=Math.max(20,size-6);document.documentElement.style.setProperty("--s",size+"px")};
 $("clear").onclick=()=>{$("log").innerHTML="";live=null};
 $("hide").onclick=()=>{document.body.classList.add("hide");document.documentElement.requestFullscreen?.().catch(()=>{})};
-addEventListener("keydown",e=>{if(e.key==="Escape")document.body.classList.remove("hide");if(e.code==="Space"&&e.target.tagName!=="SELECT"){e.preventDefault();setMode(mode===1?2:1)}});
-corner();
+addEventListener("keydown",e=>{if(e.key==="Escape")document.body.classList.remove("hide");if(e.target.tagName==="INPUT")return;if(e.code==="Space"){e.preventDefault();pick((cur+1)%P.length)}const n=+e.key;if(n>=1&&n<=P.length)pick(n-1)});
+draw();
 </script></body></html>
