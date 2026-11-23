@@ -1,24 +1,34 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sous-titres traduits</title>
 <style>
-body{margin:0;background:#000;color:#fff;font-family:-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px;background:#1b1b1f;font-size:15px}
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
+body{margin:0;background:#000;color:#fff;font-family:'Atkinson Hyperlegible',-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px;background:#141418;font-size:15px}
 button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid #444;background:#2a2a30;color:#fff;cursor:pointer}
 .go{background:#e8643a;border-color:#e8643a;font-weight:700}
 .dir{font-size:20px;font-weight:700;background:#1e3a8a;border-color:#3b5bdb}
 .st{color:#aaa}
-#log{flex:1;overflow-y:auto;padding:16px 26px 24px;display:flex;flex-direction:column;gap:14px}
-.line{border-left:5px solid #3b5bdb;padding-left:14px}
-.line.en{border-color:#e8643a}
-.t{font-size:var(--s);font-weight:700;line-height:1.2}
-.o{font-size:calc(var(--s)*.42);color:#9a9aa2;margin-top:4px}
-.live .t{opacity:.85}
+#log{flex:1;overflow-y:auto;padding:16px 26px 26px;display:flex;flex-direction:column;justify-content:flex-end;gap:16px}
+#log>:first-child{margin-top:auto}
+.line{display:flex;flex-direction:column;align-items:flex-start;opacity:.55;transition:opacity .3s}
+.line:nth-last-child(-n+2){opacity:1}
+.who{font-size:calc(var(--s)*.34);font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:6px;margin-bottom:6px}
+.fr .who{background:#3b5bdb}
+.en .who{background:#e8643a}
+.t{font-size:var(--s);font-weight:700;line-height:1.25;background:rgba(20,20,24,.92);padding:6px 14px;border-radius:8px;text-shadow:0 2px 6px #000;border-left:6px solid #3b5bdb}
+.en .t{border-left-color:#e8643a}
+.t:empty::before{content:"…";opacity:.5}
+.live .t::after{content:"▍";animation:b 1s steps(1) infinite;margin-left:4px;color:#ffd43b}
+@keyframes b{50%{opacity:0}}
+.o{font-size:calc(var(--s)*.4);color:#a8a8b3;margin:6px 0 0 20px;font-style:italic}
+mark{background:none;color:#ffd43b}
+mark.n{color:#63e6be}
 .hide .bar{display:none}
 #who2{display:none;position:fixed;top:8px;right:14px;font-size:20px;opacity:.6}
 .hide #who2{display:block}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#555;margin-right:6px}
 .on .dot{background:#3ddc84}
-</style></head><body style="--s:44px">
+</style></head><body style="--s:52px">
 <div class="bar">
 <button class="dir" id="dir">🇫🇷 Je parle → 🇬🇧</button>
 <button class="go" id="go">▶ Démarrer</button>
@@ -33,19 +43,22 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid #444;bac
 <script>
 const $=i=>document.getElementById(i);
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let rec,on=false,size=44,fr=true,live=null,seq=0,timer=null,lastQ="";
+let rec,on=false,size=52,fr=true,live=null,seq=0,timer=null,lastQ="";
 const fix=t=>t.replace(/(small |little )?lipoprotein\s*(petit|little|small)?\s*\(?a\)?(?=[\s.,;:!?]|$)/gi,"Lp(a)").replace(/lipoprot\w*\s*petit\s*a\b/gi,"Lp(a)").replace(/\bLP ?\(a\)|\bLPA\b/gi,"Lp(a)").replace(/\bobese (patients|people|subjects)\b/gi,"patients with obesity").replace(/\bnon-obese\b/gi,"without obesity");
+const KEY=/\b(Lp\(a\)|LDL|HDL|HbA1c|GLP-1|PCSK9|apolipoprotein\s?B|apolipoprotéine\s?B|obesity|obésité|diabetes|diabète|cardiovascular|cardiovasculaire|risk|risque|cholesterol|cholestérol|insulin|insuline|statin\w*|statine\w*|study|étude|patients?|treatment|traitement|nutrition\w*|sport)\b/gi;
+const esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const hl=t=>esc(t).replace(KEY,'<mark>$&</mark>').replace(/\b\d+([.,]\d+)?\s?(%|mg\/dL|mg|kg|g\/L|mmol\/L|ans|years)?/g,m=>'<mark class="n">'+m+'</mark>');
 const cfg=()=>fr?{lang:"fr-FR",sl:"fr",tl:"en",cls:"fr"}:{lang:"en-US",sl:"en",tl:"fr",cls:"en"};
 const T={};async function local(text,c){const k=c.sl+c.tl;if(!window.Translator)throw 0;if(!T[k])T[k]=Translator.create({sourceLanguage:c.sl,targetLanguage:c.tl});return await (await T[k]).translate(text)}
 async function web(text,c){const r=await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl="+c.sl+"&tl="+c.tl+"&q="+encodeURIComponent(text)).then(r=>r.json());return r[0].map(x=>x[0]).join("")}
 async function tr(text,c,final){const order=final?[web,local]:[local,web];for(const f of order){try{return fix(await f(text,c))}catch(e){}}return "⚠️ Traduction indisponible : vérifie Internet ou mets Chrome à jour"}
-function newLine(c){const d=document.createElement("div");d.className="line live "+c.cls;d.innerHTML='<div class="t"></div><div class="o"></div>';$("log").appendChild(d);while($("log").children.length>30)$("log").firstChild.remove();return d}
+function newLine(c){const d=document.createElement("div");d.className="line live "+c.cls;d.innerHTML='<div class="who">'+(c.cls==="fr"?"🇫🇷 Moi":"🇬🇧 Interlocuteur")+'</div><div class="t"></div><div class="o"></div>';$("log").appendChild(d);while($("log").children.length>30)$("log").firstChild.remove();return d}
 function scroll(){$("log").scrollTop=$("log").scrollHeight}
 function update(text,final){
  const c=cfg();if(!live)live=newLine(c);
  const el=live;el.querySelector(".o").textContent=text;scroll();
  const id=++seq;
- const go=async()=>{const out=await tr(text,c,final);if(final||id===seq){el.querySelector(".t").textContent=out;scroll()}};
+ const go=async()=>{const out=await tr(text,c,final);if(final||id===seq){el.querySelector(".t").innerHTML=hl(out);scroll()}};
  if(final){clearTimeout(timer);go();el.classList.remove("live");live=null;lastQ=""}
  else if(text!==lastQ){lastQ=text;clearTimeout(timer);timer=setTimeout(go,60)}
 }
